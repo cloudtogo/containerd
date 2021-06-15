@@ -21,6 +21,7 @@ package run
 import (
 	gocontext "context"
 	"fmt"
+	"github.com/containerd/containerd/containers"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -265,6 +266,21 @@ func NewContainer(ctx gocontext.Context, client *containerd.Client, context *cli
 		}
 		for _, dev := range context.StringSlice("device") {
 			opts = append(opts, oci.WithDevices(dev, "", "rwm"))
+		}
+
+		rootfsPropagation := context.String("rootfs-propagation")
+		if rootfsPropagation != "" {
+			opts = append(opts, func(_ gocontext.Context, _ oci.Client, _ *containers.Container, s *oci.Spec) error {
+				if s.Linux != nil {
+					s.Linux.RootfsPropagation = rootfsPropagation
+				} else {
+					s.Linux = &specs.Linux{
+						RootfsPropagation: rootfsPropagation,
+					}
+				}
+
+				return nil
+			})
 		}
 	}
 
